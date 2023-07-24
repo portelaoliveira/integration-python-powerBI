@@ -1,8 +1,14 @@
 from dash import Dash, html, dcc, Input, Output
 import plotly.express as px
 import pandas as pd
+import dash_auth
+
+USUARIOS = {
+    "Portela": "123456",
+}
 
 app = Dash(__name__)  # criando o seu aplicativo Dash
+auth = dash_auth.BasicAuth(app, USUARIOS)
 
 # assume you have a "long-form" data frame
 # see https://plotly.com/python/px-arguments/ for more options
