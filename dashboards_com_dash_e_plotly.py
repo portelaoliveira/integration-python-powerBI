@@ -14,19 +14,6 @@ auth = dash_auth.BasicAuth(app, USUARIOS)
 # see https://plotly.com/python/px-arguments/ for more options
 df = pd.read_excel("Vendas.xlsx")
 
-# plotly
-fig_bar = px.bar(
-    df, x="Produto", y="Quantidade", color="ID Loja", barmode="group"
-)
-fig_scatter = px.scatter(
-    df,
-    x="Quantidade",
-    y="Valor Final",
-    color="Produto",
-    size="Valor Unitário",
-    size_max=60,
-)
-
 lista_marcas = list(df["Marca"].unique())
 lista_marcas.append("Todas")
 
@@ -48,8 +35,8 @@ app.layout = html.Div(
             inline=True,
             style={"color": "SlateGrey", "font-size": 20},
         ),
-        dcc.Graph(id="vendas_por_loja", figure=fig_bar),
-        dcc.Graph(id="vendas_distribuidas", figure=fig_scatter),
+        dcc.Graph(id="vendas_por_loja"),
+        dcc.Graph(id="vendas_distribuidas"),
     ],
     style={"text-align": "center"},
 )
@@ -60,6 +47,8 @@ app.layout = html.Div(
     Output(
         "subtitulo", "children"
     ),  # eu quero modificar (eu quero que o botão do input modifique)
+    Output("vendas_por_loja", "figure"),
+    Output("vendas_distribuidas", "figure"),
     Input(
         "selecao_marcas", "value"
     ),  # quem está modificando/de onde eu quero pegar a informacao/que tá fazendo um filtro
@@ -67,9 +56,38 @@ app.layout = html.Div(
 def selecionar_marca(marca):
     if marca == "Todas":
         texto = "Vendas de cada Produto por Loja"
+        # plotly
+        fig_bar = px.bar(
+            df, x="Produto", y="Quantidade", color="ID Loja", barmode="group"
+        )
+        fig_scatter = px.scatter(
+            df,
+            x="Quantidade",
+            y="Valor Final",
+            color="Produto",
+            size="Valor Unitário",
+            size_max=60,
+        )
     else:
+        df_filt = df.loc[df["Marca"] == marca, :]
         texto = f"Vendas de cada Produto por Loja da Marca {marca}"
-    return texto
+        # plotly
+        fig_bar = px.bar(
+            df_filt,
+            x="Produto",
+            y="Quantidade",
+            color="ID Loja",
+            barmode="group",
+        )
+        fig_scatter = px.scatter(
+            df_filt,
+            x="Quantidade",
+            y="Valor Final",
+            color="Produto",
+            size="Valor Unitário",
+            size_max=60,
+        )
+    return texto, fig_bar, fig_scatter
 
 
 # colocando o seu site (seu dashboard) no ar
