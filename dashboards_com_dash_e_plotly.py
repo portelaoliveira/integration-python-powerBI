@@ -17,6 +17,9 @@ df = pd.read_excel("Vendas.xlsx")
 lista_marcas = list(df["Marca"].unique())
 lista_marcas.append("Todas")
 
+lista_paises = list(df["País"].unique())
+lista_paises.append("Todos")
+
 # css
 app.layout = html.Div(
     children=[
@@ -29,17 +32,45 @@ app.layout = html.Div(
     """),
         html.H3(children="Vendas de cada Produto por Loja", id="subtitulo"),
         dcc.RadioItems(
-            lista_marcas,
+            options=lista_marcas,
             value="Todas",
             id="selecao_marcas",
             inline=True,
             style={"color": "SlateGrey", "font-size": 20},
+        ),
+        html.Div(
+            children=[
+                dcc.Dropdown(
+                    options=lista_paises,
+                    value="Todos",
+                    id="selecao_pais",
+                    style={"color": "SlateGrey", "font-size": 20},
+                ),
+                html.Div(id="pais_selecionado"),
+            ],
+            style={"width": "50%", "margin": "auto"},
         ),
         dcc.Graph(id="vendas_por_loja"),
         dcc.Graph(id="vendas_distribuidas"),
     ],
     style={"text-align": "center"},
 )
+
+
+@app.callback(
+    Output("selecao_pais", "options"),
+    Input("selecao_marcas", "value"),
+)
+def opcoes_pais(marca):
+    # criar uma lógica que diga qual a lista de paises que ele vai pegar
+    if marca == "Todas":
+        nova_lista_paises = list(df["País"].unique())
+        nova_lista_paises.append("Todos")
+    else:
+        df_filtrada = df.loc[df["Marca"] == marca, :]
+        nova_lista_paises = list(df_filtrada["País"].unique())
+        nova_lista_paises.append("Todos")
+    return nova_lista_paises
 
 
 # callbacks -> dar funcionalidade pro nosso dashboard (conecta os botões com os gráficos)
@@ -52,9 +83,10 @@ app.layout = html.Div(
     Input(
         "selecao_marcas", "value"
     ),  # quem está modificando/de onde eu quero pegar a informacao/que tá fazendo um filtro
+    Input("selecao_pais", "value"),
 )
-def selecionar_marca(marca):
-    if marca == "Todas":
+def selecionar_marca(marca, pais):
+    if marca == "Todas" and pais == "Todos":
         texto = "Vendas de cada Produto por Loja"
         # plotly
         fig_bar = px.bar(
@@ -69,18 +101,27 @@ def selecionar_marca(marca):
             size_max=60,
         )
     else:
-        df_filt = df.loc[df["Marca"] == marca, :]
-        texto = f"Vendas de cada Produto por Loja da Marca {marca}"
-        # plotly
+        df_filtrada = df
+        if marca != "Todas":
+            # filtrar de acordo com a marca
+            df_filtrada = df_filtrada.loc[df_filtrada["Marca"] == marca, :]
+        if pais != "Todos":
+            # filtrar de acordo com o pais
+            df_filtrada = df_filtrada.loc[df_filtrada["País"] == pais, :]
+
+        texto = (
+            f"Vendas de cada Produto por Loja da Marca {marca} e do País"
+            f" {pais}"
+        )
         fig_bar = px.bar(
-            df_filt,
+            df_filtrada,
             x="Produto",
             y="Quantidade",
             color="ID Loja",
             barmode="group",
         )
         fig_scatter = px.scatter(
-            df_filt,
+            df_filtrada,
             x="Quantidade",
             y="Valor Final",
             color="Produto",
@@ -88,6 +129,14 @@ def selecionar_marca(marca):
             size_max=60,
         )
     return texto, fig_bar, fig_scatter
+
+
+@app.callback(
+    Output("pais_selecionado", "children"),
+    Input("selecao_pais", "value"),
+)
+def update_output(value):
+    return f"Você selecionou o País: {value}"
 
 
 # colocando o seu site (seu dashboard) no ar
